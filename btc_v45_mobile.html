@@ -494,11 +494,15 @@ const fmt2 = v => v == null || isNaN(v) ? '--' : v.toFixed(2);
 // ─────────────────────────────────────────────
 // 数据获取
 // ─────────────────────────────────────────────
+// 代理URL：本地Python代理 → OKX（CORS问题由代理解决）
+const PROXY_URL = 'http://localhost:8766';
+const COMPUTER_IP = 'localhost'; // 手机访问时请改成你电脑的局域网IP
+
 async function fetchWithFallback(urls) {
   for (const url of urls) {
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 8000);
+      const t = setTimeout(() => ctrl.abort(), 10000);
       const r = await fetch(url, { signal: ctrl.signal });
       clearTimeout(t);
       if (!r.ok) continue;
@@ -510,14 +514,19 @@ async function fetchWithFallback(urls) {
 }
 
 async function fetchOKX() {
+  // 优先用本地代理，代理连接OKX（绕过CORS）
+  const proxyKlines = `http://${COMPUTER_IP}:8766/klines?instId=BTC-USD-SWAP&bar=15m&limit=100`;
+  const d = await fetchWithFallback([proxyKlines]);
+  if (d && !d.error && d.data) return d.data;
+  // 降级：直连OKX
   const okxUrl = 'https://www.okx.com/api/v5/market/candles?instId=BTC-USD-SWAP&bar=15m&limit=100';
-  const d = await fetchWithFallback([okxUrl]);
-  if (!d) return null;
-  if (Array.isArray(d) && d.length > 0 && Array.isArray(d[0])) {
-    return d.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
+  const d2 = await fetchWithFallback([okxUrl]);
+  if (!d2) return null;
+  if (Array.isArray(d2) && d2.length > 0 && Array.isArray(d2[0])) {
+    return d2.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
   }
-  if (d.code !== '0') return null;
-  return d.data;
+  if (d2.code !== '0') return null;
+  return d2.data;
 }
 
 // ─────────────────────────────────────────────
