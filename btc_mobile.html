@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BTC 盯盘</title>
+<meta name="theme-color" content="#0a0e17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BTC盯盘">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="btc_icon.svg">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background: #0a0e17; color: #e2e8f0; font-family: -apple-system, system-ui, sans-serif; padding: 12px 10px; min-height: 100vh; user-select: none; }
+
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.top-bar h1 { font-size: 16px; font-weight: 700; }
+.update-time { font-size: 11px; color: #475569; }
+.update-time.live { color: #10b981; animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.signal-card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 20px 16px; margin-bottom: 12px; text-align: center; }
+.price-display { font-size: 42px; font-weight: 800; letter-spacing: -1.5px; margin-bottom: 4px; }
+.price-display.up { color: #10b981; }
+.price-display.dn { color: #ef4444; }
+.price-display.neutral { color: #e2e8f0; }
+.direction-badge { display: inline-block; font-size: 20px; font-weight: 900; padding: 10px 36px; border-radius: 12px; margin: 6px 0; }
+.direction-badge.long { background: rgba(16,185,129,.2); color: #10b981; border: 2px solid #10b981; }
+.direction-badge.short { background: rgba(239,68,68,.2); color: #ef4444; border: 2px solid #ef4444; }
+.direction-badge.wait { background: rgba(148,163,184,.08); color: #64748b; border: 2px solid #334155; }
+.direction-badge.strong-long { background: #10b981; color: #0a0e17; animation: pulse-green 1.5s infinite; }
+.direction-badge.strong-short { background: #ef4444; color: #fff; animation: pulse-red 1.5s infinite; }
+@keyframes pulse-green { 0%,100%{box-shadow:0 0 10px rgba(16,185,129,.5)} 50%{box-shadow:0 0 25px rgba(16,185,129,.9)} }
+@keyframes pulse-red { 0%,100%{box-shadow:0 0 10px rgba(239,68,68,.5)} 50%{box-shadow:0 0 25px rgba(239,68,68,.9)} }
+.verdict-text { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.verdict-text.green { color: #10b981; }
+.verdict-text.red { color: #ef4444; }
+.verdict-text.yellow { color: #f59e0b; }
+.verdict-text.wait { color: #64748b; }
+.verdict-reason { font-size: 12px; color: #64748b; margin-top: 8px; line-height: 1.5; }
+
+.sl-tp-card { background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.sl-tp-row { display: flex; gap: 8px; }
+.sl-tp-box { flex: 1; background: rgba(255,255,255,.03); border-radius: 10px; padding: 10px 8px; text-align: center; }
+.st-label { font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: .5px; }
+.st-value { font-size: 15px; font-weight: 700; margin-top: 3px; }
+.st-value.sl { color: #ef4444; }
+.st-value.tp { color: #10b981; }
+.pos-status { font-size: 11px; color: #475569; margin-top: 8px; text-align: center; }
+.pos-status.active { color: #94a3b8; }
+
+.indicators-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.ind-card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 8px; text-align: center; }
+.ind-label { font-size: 10px; color: #475569; text-transform: uppercase; }
+.ind-value { font-size: 16px; font-weight: 700; margin-top: 4px; }
+.ind-value.green { color: #10b981; }
+.ind-value.red { color: #ef4444; }
+
+.pos-card { background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.pos-title { font-size: 12px; color: #475569; margin-bottom: 10px; text-transform: uppercase; }
+.pos-btns { display: flex; gap: 8px; }
+.pos-btn { flex: 1; padding: 10px 0; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid #1f2937; color: #94a3b8; font-size: 14px; background: none; }
+.pos-btn.active-long { background: rgba(16,185,129,.15); border-color: #10b981; color: #10b981; }
+.pos-btn.active-short { background: rgba(239,68,68,.15); border-color: #ef4444; color: #ef4444; }
+.entry-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #64748b; }
+.entry-input { flex: 1; background: rgba(255,255,255,.05); border: 1px solid #1f2937; border-radius: 8px; padding: 8px 10px; color: #e2e8f0; font-size: 14px; outline: none; }
+
+.settings-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #64748b; }
+.settings-input { width: 60px; background: rgba(255,255,255,.05); border: 1px solid #1f2937; border-radius: 8px; padding: 6px 8px; color: #e2e8f0; font-size: 13px; text-align: center; outline: none; }
+
+.footer-note { text-align: center; font-size: 10px; color: #334155; margin-top: 20px; margin-bottom: 80px; }
+
+.refresh-btn { position: fixed; bottom: 20px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: #10b981; border: none; color: #0a0e17; font-size: 22px; cursor: pointer; box-shadow: 0 4px 20px rgba(16,185,129,.4); display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+.refresh-btn:active { transform: scale(0.92); }
+.refresh-btn.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to{ transform: rotate(360deg); } }
+
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #111827; border: 1px solid #10b981; border-radius: 12px; padding: 12px 20px; font-size: 14px; color: #e2e8f0; z-index: 9999; transition: transform .3s; pointer-events: none; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.red { border-color: #ef4444; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>BTC <span>15m</span></h1>
+  <div class="update-time" id="updateTime">启动中...</div>
+</div>
+
+<div class="signal-card">
+  <div class="price-display neutral" id="priceDisplay">--</div>
+  <div class="verdict-text wait" id="verdictText">加载中...</div>
+  <div class="direction-badge wait" id="directionBadge">◇ 等待</div>
+  <div class="verdict-reason" id="verdictReason">--</div>
+</div>
+
+<div class="sl-tp-card" id="slTpCard" style="display:none">
+  <div class="sl-tp-row">
+    <div class="sl-tp-box">
+      <div class="st-label">止损</div>
+      <div class="st-value sl" id="slValue">--</div>
+    </div>
+    <div class="sl-tp-box">
+      <div class="st-label">止盈</div>
+      <div class="st-value tp" id="tpValue">--</div>
+    </div>
+    <div class="sl-tp-box">
+      <div class="st-label">入场</div>
+      <div class="st-value" id="entryValue">--</div>
+    </div>
+  </div>
+  <div class="pos-status active" id="posStatus"></div>
+</div>
+
+<div class="indicators-grid">
+  <div class="ind-card"><div class="ind-label">ADX</div><div class="ind-value" id="adxVal">--</div></div>
+  <div class="ind-card"><div class="ind-label">RSI</div><div class="ind-value" id="rsiVal">--</div></div>
+  <div class="ind-card"><div class="ind-label">EMA</div><div class="ind-value" id="emaVal">--</div></div>
+  <div class="ind-card"><div class="ind-label">MACD柱</div><div class="ind-value" id="macdVal">--</div></div>
+  <div class="ind-card"><div class="ind-label">回撤</div><div class="ind-value" id="pullbackVal">--</div></div>
+  <div class="ind-card"><div class="ind-label">DI趋势</div><div class="ind-value" id="diVal">--</div></div>
+</div>
+
+<div class="pos-card">
+  <div class="pos-title">持仓状态</div>
+  <div class="pos-btns">
+    <button class="pos-btn" id="btnLong" onclick="setPos(1)">做多 🐂</button>
+    <button class="pos-btn" id="btnShort" onclick="setPos(-1)">做空 🐻</button>
+    <button class="pos-btn" id="btnFlat" onclick="setPos(0)">空仓</button>
+  </div>
+  <div class="entry-row">
+    <text>入场价:</text>
+    <input class="entry-input" id="entryInput" type="digit" placeholder="输入入场价" onblur="saveEntry()">
+  </div>
+  <div class="settings-row">
+    <text>止损%:</text>
+    <input class="settings-input" id="slInput" type="number" value="2" onblur="saveSL()">
+    <text>止盈%:</text>
+    <input class="settings-input" id="tpInput" type="number" value="4" onblur="saveTP()">
+    <text>R:R</text>
+    <span id="rrDisplay" style="color:#94a3b8;font-size:13px">--</span>
+  </div>
+</div>
+
+<div class="footer-note">V45 · Binance数据 · GitHub Pages</div>
+
+<button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">↻</button>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// 数据源：Binance（无CORS，永久可用）
+// ─────────────────────────────────────────────
+const fmt = v => v == null || isNaN(v) ? '--' : Math.round(v).toLocaleString();
+const fmt2 = v => v == null || isNaN(v) ? '--' : v.toFixed(2);
+
+let updating = false;
+let lastDirection = '';
+let lastPrice = 0;
+let posType = 0, entryPrice = 0, slPct = 2, tpPct = 4;
+
+// ─────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+async function fetchWithTimeout(url, ms = 10000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { clearTimeout(t); return null; }
+}
+
+async function fetchBinanceKlines() {
+  // Binance无需CORS，浏览器直连
+  const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100';
+  const d = await fetchWithTimeout(url);
+  if (!d || !Array.isArray(d) || d.length === 0) return null;
+  return d.map(c => ({
+    ts: parseInt(c[0]),
+    open: parseFloat(c[1]),
+    high: parseFloat(c[2]),
+    low: parseFloat(c[3]),
+    close: parseFloat(c[4]),
+    vol: parseFloat(c[5])
+  }));
+}
+
+// ─────────────────────────────────────────────
+// 指标计算
+// ─────────────────────────────────────────────
+function calcEMA(arr, n) {
+  const k = 2 / (n + 1);
+  const out = new Array(arr.length).fill(null);
+  let ema = arr.slice(0, n).reduce((a, b) => a + b, 0) / n;
+  for (let i = n - 1; i < arr.length; i++) {
+    ema = arr[i] * k + ema * (1 - k);
+    out[i] = ema;
+  }
+  return out;
+}
+
+function calcATR(h, l, c) {
+  const tr = h.map((_, i) =>
+    i === 0 ? l[i] - h[i] : Math.max(h[i] - l[i], Math.abs(h[i] - c[i-1]), Math.abs(l[i] - c[i-1]))
+  );
+  const atr = new Array(tr.length).fill(null);
+  let s = tr.slice(0, 14).reduce((a, b) => a + b, 0) / 14;
+  atr[13] = s;
+  for (let i = 14; i < tr.length; i++) { s = (s * 13 + tr[i]) / 14; atr[i] = s; }
+  return { atr };
+}
+
+function calcADX(h, l, c) {
+  const tr = h.map((_, i) =>
+    i === 0 ? l[i] - h[i] : Math.max(h[i] - l[i], Math.abs(h[i] - c[i-1]), Math.abs(l[i] - c[i-1]))
+  );
+  const upMove = h.map((_, i) => i === 0 ? 0 : h[i] - h[i - 1]);
+  const dnMove = l.map((_, i) => i === 0 ? 0 : l[i - 1] - l[i]);
+  const pDM = upMove.map((u, d, i) => i === 0 ? 0 : (u > d && u > 0) ? u : 0);
+  const mDM = dnMove.map((d, u, i) => i === 0 ? 0 : (d > u && d > 0) ? d : 0);
+  let tr14 = tr.slice(0, 14).reduce((a, b) => a + b, 0);
+  let pDM14 = pDM.slice(0, 14).reduce((a, b) => a + b, 0);
+  let mDM14 = mDM.slice(0, 14).reduce((a, b) => a + b, 0);
+  const plusDI = [], minusDI = [], dx = [];
+  for (let i = 13; i < tr.length; i++) {
+    if (i > 13) { tr14 = tr14 * 13 / 14 + tr[i]; pDM14 = pDM14 * 13 / 14 + pDM[i]; mDM14 = mDM14 * 13 / 14 + mDM[i]; }
+    const pDI = tr14 > 0 ? pDM14 / tr14 * 100 : 0;
+    const mDI = tr14 > 0 ? mDM14 / tr14 * 100 : 0;
+    plusDI[i] = pDI; minusDI[i] = mDI;
+    dx[i] = tr14 > 0 ? Math.abs(pDI - mDI) / (pDI + mDI) * 100 : 0;
+  }
+  let adxVal = dx.slice(13, 27).reduce((a, b) => a + b, 0) / 14;
+  const adx = new Array(dx.length).fill(null);
+  for (let i = 26; i < dx.length; i++) {
+    adxVal = (adxVal * 13 + dx[i]) / 14;
+    adx[i] = adxVal;
+  }
+  return { adx, plusDI, minusDI };
+}
+
+function calcRSI(arr, n = 14) {
+  const out = new Array(arr.length).fill(null);
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= n; i++) {
+    const diff = arr[i] - arr[i - 1];
+    if (diff > 0) gain += diff; else loss -= diff;
+  }
+  let avgGain = gain / n, avgLoss = loss / n;
+  for (let i = n; i < arr.length; i++) {
+    if (i > n) {
+      const diff = arr[i] - arr[i - 1];
+      avgGain = (avgGain * (n - 1) + (diff > 0 ? diff : 0)) / n;
+      avgLoss = (avgLoss * (n - 1) + (diff < 0 ? -diff : 0)) / n;
+    }
+    out[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  }
+  return out;
+}
+
+function calcMACD(arr) {
+  const ema12 = calcEMA(arr, 12);
+  const ema26 = calcEMA(arr, 26);
+  const macd = arr.map((_, i) => ema12[i] && ema26[i] ? ema12[i] - ema26[i] : null);
+  const rawSig = macd.filter(v => v != null);
+  const sig = calcEMA(rawSig, 9);
+  const sigOff = macd.findIndex(v => v != null);
+  const signal = new Array(arr.length).fill(null);
+  sig.forEach((v, i) => { if (v != null) signal[sigOff + i] = v; });
+  const hist = macd.map((v, i) => v != null && signal[i] != null ? v - signal[i] : null);
+  return { macd, signal, hist };
+}
+
+// ─────────────────────────────────────────────
+// 主逻辑
+// ─────────────────────────────────────────────
+async function update() {
+  if (updating) return;
+  updating = true;
+  const spinner = $('refreshBtn');
+  spinner.classList.add('spinning');
+  $('updateTime').textContent = '刷新中...';
+
+  const candles = await fetchBinanceKlines();
+  if (!candles || candles.length === 0) {
+    $('updateTime').textContent = '加载失败';
+    spinner.classList.remove('spinning');
+    updating = false;
+    return;
+  }
+
+  const n = candles.length;
+  const close = candles.map(c => c.close);
+  const high = candles.map(c => c.high);
+  const low = candles.map(c => c.low);
+  const price = close[n - 1];
+
+  const ema10 = calcEMA(close, 10);
+  const ema30 = calcEMA(close, 30);
+  const ema10v = ema10[n - 1], ema30v = ema30[n - 1];
+  const emaBull = ema10v > ema30v;
+
+  const { adx, plusDI, minusDI } = calcADX(high, low, close);
+  const adxV = adx[n - 1] || 0;
+  const plusDIV = plusDI[n - 1] || 0;
+  const minusDIV = minusDI[n - 1] || 0;
+  const diLong = plusDIV > minusDIV;
+
+  const rsiArr = calcRSI(close);
+  const rsi = rsiArr[n - 1] || 50;
+
+  const { hist } = calcMACD(close);
+  const histV = hist[n - 1] || 0;
+
+  const { atr } = calcATR(high, low, close);
+  const atrV = atr[n - 1] || 0;
+
+  const pullbackRatio = (price - ema10v) / (atrV > 0 ? atrV : 1);
+
+  // V45信号
+  let direction = 'wait', verdict = '', vColor = 'wait', reason = '';
+  const longPullback = emaBull && pullbackRatio < -0.5 && pullbackRatio > -6;
+  const longStrong = longPullback && rsi >= 35 && rsi <= 50 && histV > 0 && adxV >= 28;
+  const longConfirm = longPullback && rsi >= 30 && rsi <= 55 && histV > 0 && adxV >= 20;
+  const shortPullback = !emaBull && pullbackRatio > 0.5 && pullbackRatio < 6;
+  const shortConfirm = shortPullback && rsi >= 50 && rsi <= 70 && histV < 0 && adxV >= 20;
+
+  if (longStrong) {
+    direction = 'long'; verdict = '✅ 回调做多'; vColor = 'green';
+    reason = `EMA多头+回撤${Math.abs(pullbackRatio).toFixed(1)}ATR+MACD柱转正+ADX=${adxV.toFixed(0)}`;
+  } else if (longConfirm) {
+    direction = 'long'; verdict = '⚠ 试探做多'; vColor = 'yellow';
+    reason = `EMA多头+小回调+RSI${rsi.toFixed(0)}+ADX=${adxV.toFixed(0)}（轻仓）`;
+  } else if (shortConfirm) {
+    direction = 'short'; verdict = '🔴 反弹做空'; vColor = 'red';
+    reason = `EMA空头+反弹${pullbackRatio.toFixed(1)}ATR+MACD转负+ADX=${adxV.toFixed(0)}`;
+  } else if (adxV < 18) {
+    verdict = '⏸ 震荡'; reason = `ADX=${adxV.toFixed(0)} 无明确趋势`;
+  } else if (emaBull && pullbackRatio >= -0.5) {
+    verdict = '⏸ 等回调'; reason = `EMA多头+价格未回调（${pullbackRatio.toFixed(1)}ATR）`;
+  } else if (!emaBull && pullbackRatio <= 0.5) {
+    verdict = '⏸ 等反弹'; reason = `EMA空头+未明显反弹`;
+  } else {
+    verdict = '⏸ 观望'; reason = `EMA${emaBull?'多头':'空头'}+ADX=${adxV.toFixed(0)}`;
+  }
+
+  // 持仓覆盖
+  let action = verdict;
+  if (posType === 1 && direction === 'long') action = '🐂 持有做多';
+  if (posType === 1 && direction === 'short') action = '🚨 平多仓！';
+  if (posType === -1 && direction === 'short') action = '🐻 持有做空';
+  if (posType === -1 && direction === 'long') action = '🚨 平空仓！';
+
+  // 信号变化通知
+  if (direction !== lastDirection && lastDirection !== '' && direction !== 'wait') {
+    showToast(direction === 'long' ? '📈 做多信号' : '📉 做空信号', verdict, reason);
+  }
+  lastDirection = direction;
+  lastPrice = price;
+
+  // 渲染
+  const priceEl = $('priceDisplay');
+  priceEl.textContent = '$' + fmt(price);
+  priceEl.className = 'price-display ' + (direction === 'long' ? 'up' : direction === 'short' ? 'dn' : 'neutral');
+
+  $('verdictText').textContent = action;
+  $('verdictText').className = 'verdict-text ' + vColor;
+
+  const badge = $('directionBadge');
+  if (direction === 'long') badge.className = 'direction-badge ' + (longStrong ? 'strong-long' : 'long');
+  else if (direction === 'short') badge.className = 'direction-badge ' + (adxV >= 28 ? 'strong-short' : 'short');
+  else badge.className = 'direction-badge wait';
+  badge.textContent = direction === 'long' ? '▲ 做多' : direction === 'short' ? '▼ 做空' : '◇ 等待';
+
+  $('verdictReason').textContent = reason;
+
+  // 指标
+  $('adxVal').textContent = adxV.toFixed(1);
+  $('adxVal').className = 'ind-value ' + (adxV >= 25 ? 'green' : adxV < 18 ? 'red' : '');
+  $('rsiVal').textContent = rsi.toFixed(0);
+  $('rsiVal').className = 'ind-value ' + (rsi < 30 ? 'green' : rsi > 70 ? 'red' : '');
+  $('emaVal').textContent = emaBull ? '多头↑' : '空头↓';
+  $('emaVal').className = 'ind-value ' + (emaBull ? 'green' : 'red');
+  $('macdVal').textContent = histV >= 0 ? '+' + histV.toFixed(0) : histV.toFixed(0);
+  $('macdVal').className = 'ind-value ' + (histV > 0 ? 'green' : 'red');
+  $('pullbackVal').textContent = (pullbackRatio >= 0 ? '+' : '') + pullbackRatio.toFixed(1) + 'x';
+  $('diVal').textContent = diLong ? '↑' : '↓';
+  $('diVal').className = 'ind-value ' + (diLong ? 'green' : 'red');
+
+  // SL/TP
+  if (posType !== 0 && entryPrice > 0) {
+    $('slTpCard').style.display = 'block';
+    let sl = posType === 1 ? entryPrice * (1 - slPct / 100) : entryPrice * (1 + slPct / 100);
+    let tp = posType === 1 ? entryPrice * (1 + tpPct / 100) : entryPrice * (1 - tpPct / 100);
+    $('slValue').textContent = '$' + fmt(sl);
+    $('tpValue').textContent = '$' + fmt(tp);
+    $('entryValue').textContent = '$' + fmt(entryPrice);
+    const rr = tpPct / slPct;
+    $('rrDisplay').textContent = '1:' + rr.toFixed(1);
+    $('posStatus').textContent = posType === 1 ? '做多持仓中' : '做空持仓中';
+  } else {
+    $('slTpCard').style.display = 'none';
+  }
+
+  $('updateTime').textContent = new Date().toLocaleTimeString('zh-CN');
+  $('updateTime').classList.add('live');
+  spinner.classList.remove('spinning');
+  updating = false;
+}
+
+function manualRefresh() { update(); }
+
+// ─────────────────────────────────────────────
+// 持仓操作
+// ─────────────────────────────────────────────
+function setPos(p) {
+  posType = p;
+  localStorage.setItem('posType', p);
+  $('btnLong').className = 'pos-btn' + (p === 1 ? ' active-long' : '');
+  $('btnShort').className = 'pos-btn' + (p === -1 ? ' active-short' : '');
+  $('btnFlat').className = 'pos-btn' + (p === 0 ? ' active-long' : '');
+  if (p === 0) { entryPrice = 0; localStorage.setItem('entryPrice', 0); $('entryInput').value = ''; }
+  update();
+}
+
+function saveEntry() {
+  const v = parseFloat($('entryInput').value);
+  if (v > 0) {
+    entryPrice = v;
+    localStorage.setItem('entryPrice', v);
+    update();
+  }
+}
+
+function saveSL() {
+  const v = parseFloat($('slInput').value);
+  if (v > 0) { slPct = v; localStorage.setItem('slPct', v); update(); }
+}
+
+function saveTP() {
+  const v = parseFloat($('tpInput').value);
+  if (v > 0) { tpPct = v; localStorage.setItem('tpPct', v); update(); }
+}
+
+// ─────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(emoji, title, sub) {
+  const t = $('toast');
+  t.innerHTML = '<b>' + emoji + ' ' + title + '</b><br><small>' + sub + '</small>';
+  t.className = 'toast show' + (emoji.includes('📉') ? ' red' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 5000);
+}
+
+// ─────────────────────────────────────────────
+// 初始化
+// ─────────────────────────────────────────────
+function init() {
+  posType = parseInt(localStorage.getItem('posType') || '0');
+  entryPrice = parseFloat(localStorage.getItem('entryPrice') || '0') || 0;
+  slPct = parseFloat(localStorage.getItem('slPct') || '2');
+  tpPct = parseFloat(localStorage.getItem('tpPct') || '4');
+  $('entryInput').value = entryPrice || '';
+  $('slInput').value = slPct;
+  $('tpInput').value = tpPct;
+  $('btnLong').className = 'pos-btn' + (posType === 1 ? ' active-long' : '');
+  $('btnShort').className = 'pos-btn' + (posType === -1 ? ' active-short' : '');
+  $('rrDisplay').textContent = '1:' + (tpPct / slPct).toFixed(1);
+  update();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) update();
+});
+
+setInterval(update, 30000);
+init();
+</script>
+</body>
+</html>
