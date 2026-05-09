@@ -1,0 +1,17 @@
+{
+  "name": "BTC 盯盘 V45",
+  "short_name": "BTC盯盘",
+  "description": "BTC实时盯盘，V45策略，进化型止盈止损",
+  "start_url": "./btc_v45_mobile.html",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "btc_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
