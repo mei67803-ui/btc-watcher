@@ -398,11 +398,11 @@ let posType = 0;
 let lastDirection = 'wait';
 let lastPrice = 0;
 let toastTimer = null;
-let params = { slPct: 2.0, tp1Pct: 4.0, tp2Pct: 8.0 };
+let params = { slPct: 0.8, tp1Pct: 2.0, tp2Pct: 4.0 };
 
 // 进化数据
 let tradeLog = JSON.parse(localStorage.getItem('v45_trades') || '[]');
-let evoParams = JSON.parse(localStorage.getItem('v45_params') || '{"streak":0,"slPct":2.0,"tp1Pct":4.0,"tp2Pct":8.0}');
+let evoParams = JSON.parse(localStorage.getItem('v45_params') || '{"streak":0,"slPct":0.8,"tp1Pct":2.0,"tp2Pct":4.0}');
 params = evoParams;
 
 // ─────────────────────────────────────────────
@@ -1062,21 +1062,21 @@ async function update() {
   let direction = 'wait', verdict = '', vColor = 'wait', reason = '';
 
   const longPullback = emaBull && pullbackRatio < -0.5 && pullbackRatio > -6;
-  const longConfirm = longPullback && rsi >= 30 && rsi <= 55 && macdHist > 0 && adxV >= 20;
-  const longStrong = longPullback && rsi >= 35 && rsi <= 50 && macdHist > 0 && adxV >= 28;
+  const longConfirm = longPullback && rsi >= 30 && rsi <= 55 && adxV >= 15;
+  const longStrong = longPullback && rsi >= 35 && rsi <= 50 && adxV >= 25;
   const shortPullback = !emaBull && pullbackRatio > 0.5 && pullbackRatio < 6;
-  const shortConfirm = shortPullback && rsi >= 50 && rsi <= 70 && macdHist < 0 && adxV >= 20;
+  const shortConfirm = shortPullback && rsi >= 50 && rsi <= 70 && adxV >= 15;
   const macdHist = histV;
 
   if (longStrong) {
     direction = 'long'; verdict = '✅ 回调做多'; vColor = 'long';
-    reason = `EMA多头+回撤${Math.abs(pullbackRatio).toFixed(1)}ATR+MACD柱转正+ADX=${adxV.toFixed(1)}`;
+    reason = `EMA多头+回撤${Math.abs(pullbackRatio).toFixed(1)}ATR+RSI${rsi.toFixed(0)}+ADX=${adxV.toFixed(1)}`;
   } else if (longConfirm) {
     direction = 'long'; verdict = '⚠ 试探做多'; vColor = 'warn';
     reason = `EMA多头+小回调+RSI${rsi.toFixed(0)}+ADX=${adxV.toFixed(1)}（轻仓）`;
   } else if (shortConfirm) {
     direction = 'short'; verdict = '🔴 反弹做空'; vColor = 'short';
-    reason = `EMA空头+反弹${pullbackRatio.toFixed(1)}ATR+MACD转负+ADX=${adxV.toFixed(1)}`;
+    reason = `EMA空头+反弹${pullbackRatio.toFixed(1)}ATR+RSI${rsi.toFixed(0)}+ADX=${adxV.toFixed(1)}`;
   } else if (adxV < 18) {
     direction = 'wait'; verdict = '⏸ 等待'; vColor = 'wait';
     reason = `ADX=${adxV.toFixed(1)} 震荡，无明确信号`;
