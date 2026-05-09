@@ -514,19 +514,14 @@ async function fetchWithFallback(urls) {
 }
 
 async function fetchOKX() {
-  // 优先用本地代理，代理连接OKX（绕过CORS）
-  const proxyKlines = `http://${COMPUTER_IP}:8766/klines?instId=BTC-USD-SWAP&bar=15m&limit=100`;
-  const d = await fetchWithFallback([proxyKlines]);
-  if (d && !d.error && d.data) return d.data;
-  // 降级：直连OKX
-  const okxUrl = 'https://www.okx.com/api/v5/market/candles?instId=BTC-USD-SWAP&bar=15m&limit=100';
-  const d2 = await fetchWithFallback([okxUrl]);
-  if (!d2) return null;
-  if (Array.isArray(d2) && d2.length > 0 && Array.isArray(d2[0])) {
-    return d2.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
+  // Binance直连：无CORS限制，永久稳定
+  const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100';
+  const d = await fetchWithFallback([url]);
+  if (!d) return null;
+  if (Array.isArray(d) && d.length > 0 && Array.isArray(d[0])) {
+    return d.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
   }
-  if (d2.code !== '0') return null;
-  return d2.data;
+  return null;
 }
 
 // ─────────────────────────────────────────────
