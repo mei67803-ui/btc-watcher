@@ -497,7 +497,10 @@ const fmt2 = v => v == null || isNaN(v) ? '--' : v.toFixed(2);
 async function fetchWithFallback(urls) {
   for (const url of urls) {
     try {
-      const r = await fetch(url);
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(t);
       if (!r.ok) continue;
       const d = await r.json();
       return d;
@@ -507,9 +510,8 @@ async function fetchWithFallback(urls) {
 }
 
 async function fetchOKX() {
-  const binanceUrl = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100';
   const okxUrl = 'https://www.okx.com/api/v5/market/candles?instId=BTC-USD-SWAP&bar=15m&limit=100';
-  const d = await fetchWithFallback([binanceUrl, okxUrl]);
+  const d = await fetchWithFallback([okxUrl]);
   if (!d) return null;
   if (Array.isArray(d) && d.length > 0 && Array.isArray(d[0])) {
     return d.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
