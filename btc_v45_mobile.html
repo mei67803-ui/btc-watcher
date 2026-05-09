@@ -507,9 +507,9 @@ async function fetchWithFallback(urls) {
 }
 
 async function fetchOKX() {
-  const okxUrl = 'https://www.okx.com/api/v5/market/candles?instId=BTC-USD-SWAP&bar=15m&limit=100';
   const binanceUrl = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100';
-  const d = await fetchWithFallback([okxUrl, binanceUrl]);
+  const okxUrl = 'https://www.okx.com/api/v5/market/candles?instId=BTC-USD-SWAP&bar=15m&limit=100';
+  const d = await fetchWithFallback([binanceUrl, okxUrl]);
   if (!d) return null;
   if (Array.isArray(d) && d.length > 0 && Array.isArray(d[0])) {
     return d.map(c => [c[0], c[1], c[2], c[3], c[4], c[5]]);
@@ -990,7 +990,10 @@ function renderSignal(data) {
 // ─────────────────────────────────────────────
 // 主逻辑
 // ─────────────────────────────────────────────
+let updating = false;
 async function update() {
+  if (updating) return;
+  updating = true;
   const spinner = $('refreshBtn');
   spinner.classList.add('spinning');
   $('updateTime').textContent = '刷新中...';
@@ -999,6 +1002,7 @@ async function update() {
   if (!raw) {
     $('updateTime').textContent = '加载失败';
     spinner.classList.remove('spinning');
+    updating = false;
     return;
   }
 
@@ -1129,6 +1133,7 @@ async function update() {
   $('updateTime').textContent = new Date().toLocaleTimeString('zh-CN');
   $('updateTime').classList.add('live');
   spinner.classList.remove('spinning');
+  updating = false;
 }
 
 function manualRefresh() {
